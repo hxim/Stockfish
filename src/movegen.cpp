@@ -261,9 +261,9 @@ namespace {
 
     mlist = generate_pawn_moves<Us, Type>(pos, mlist, target, ci);
     mlist = generate_moves<KNIGHT, Checks>(pos, mlist, Us, target, ci);
+    mlist = generate_moves< QUEEN, Checks>(pos, mlist, Us, target, ci);
     mlist = generate_moves<BISHOP, Checks>(pos, mlist, Us, target, ci);
     mlist = generate_moves<  ROOK, Checks>(pos, mlist, Us, target, ci);
-    mlist = generate_moves< QUEEN, Checks>(pos, mlist, Us, target, ci);
 
     if (Type != QUIET_CHECKS && Type != EVASIONS)
     {
