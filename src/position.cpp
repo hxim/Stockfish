@@ -455,7 +455,7 @@ const string Position::fen() const {
 
 Phase Position::game_phase() const {
 
-  Value npm = st->nonPawnMaterial[WHITE] + st->nonPawnMaterial[BLACK];
+  Value npm = std::min(st->nonPawnMaterial[WHITE], st->nonPawnMaterial[BLACK]) * 2;
 
   npm = std::max(EndgameLimit, std::min(npm, MidgameLimit));
 
