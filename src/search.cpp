@@ -909,8 +909,7 @@ moves_loop: // When in check and at SpNode search starts from here
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
           if (   (!PvNode && cutNode)
-              ||  History[pos.piece_on(to_sq(move))][to_sq(move)]
-                + CounterMovesHistory[pos.piece_on(prevMoveSq)][prevMoveSq][pos.piece_on(to_sq(move))][to_sq(move)] < VALUE_ZERO)
+              ||  History[pos.piece_on(to_sq(move))][to_sq(move)] < VALUE_ZERO)
               ss->reduction += ONE_PLY;
 
           if (move == countermoves[0] || move == countermoves[1])
@@ -1369,11 +1368,11 @@ moves_loop: // When in check and at SpNode search starts from here
         Piece prevMovePiece = pos.piece_on(prevMoveSq);
         Countermoves.update(prevMovePiece, prevMoveSq, move);
         HistoryStats &cmh = CounterMovesHistory[prevMovePiece][prevMoveSq];
-        cmh.update(pos.moved_piece(move), to_sq(move), bonus);
+        cmh.update(pos.moved_piece(move), to_sq(move), bonus * 2);
         for (int i = 0; i < quietsCnt; ++i)
         {
             Move m = quiets[i];
-            cmh.update(pos.moved_piece(m), to_sq(m), -bonus);
+            cmh.update(pos.moved_piece(m), to_sq(m), -bonus * 2);
         }
     }
 
