@@ -1370,10 +1370,20 @@ moves_loop: // When in check and at SpNode search starts from here
         }
     }
 
-    if (is_ok((ss-2)->currentMove) && (ss-1)->currentMove == (ss-1)->ttMove)
-    {
+    if (is_ok((ss-2)->currentMove))
+    {        
         Square prevOwnMoveSq = to_sq((ss-2)->currentMove);
-        Followupmoves.update(pos.piece_on(prevOwnMoveSq), prevOwnMoveSq, move);
+        if ((ss-1)->currentMove == (ss-1)->ttMove)
+            Followupmoves.update(pos.piece_on(prevOwnMoveSq), prevOwnMoveSq, move);
+            
+        HistoryStats& fmh = CounterMovesHistory[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq];
+        fmh.update(pos.moved_piece(move), to_sq(move), bonus);
+        for (int i = 0; i < quietsCnt; ++i)
+        {
+            Move m = quiets[i];
+            fmh.update(pos.moved_piece(m), to_sq(m), -bonus);
+        }
+            
     }
   }
 
