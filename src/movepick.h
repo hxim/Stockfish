@@ -41,6 +41,7 @@ template<bool Gain, typename T>
 struct Stats {
 
   static const Value Max = Value(250);
+  static const Value Max2 = Value(1000);
 
   const T* operator[](Piece pc) const { return table[pc]; }
   T* operator[](Piece pc) { return table[pc]; }
@@ -63,6 +64,13 @@ struct Stats {
     else if (abs(table[pc][to] + v) < Max)
         table[pc][to] +=  v;
   }
+  
+  void update2(Piece pc, Square to, Value v) {
+
+    if (abs(table[pc][to] + v) < Max2)
+        table[pc][to] +=  v;
+  }
+  
 
 private:
   T table[PIECE_NB][SQUARE_NB];
