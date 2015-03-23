@@ -209,7 +209,7 @@ void MovePicker::generate_next_stage() {
 
       killers[0] = ss->killers[0];
       killers[1] = ss->killers[1];
-      killers[2].move = killers[3].move = killers[4].move = killers[5].move = MOVE_NONE;
+      killers[2].move = MOVE_NONE;
 
       // In SMP case countermoves[] could have duplicated entries
       // in rare cases (less than 1 out of a million). This is harmless.
@@ -311,10 +311,7 @@ Move MovePicker::next_move<false>() {
           if (   move != ttMove
               && move != killers[0]
               && move != killers[1]
-              && move != killers[2]
-              && move != killers[3]
-              && move != killers[4]
-              && move != killers[5])
+              && move != killers[2])
               return move;
           break;
 

@@ -104,7 +104,7 @@ private:
   Move countermove;
   Depth depth;
   Move ttMove;
-  ExtMove killers[6];
+  ExtMove killers[3];
   Square recaptureSquare;
   Value captureThreshold;
   int stage;
