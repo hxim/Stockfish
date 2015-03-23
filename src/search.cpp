@@ -137,7 +137,7 @@ namespace {
   HistoryStats History;
   CounterMovesHistoryStats CounterMovesHistory;
   GainsStats Gains;
-  MovesStats Countermoves, Followupmoves;
+  MovesStats Countermoves;
 
   template <NodeType NT, bool SpNode>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
@@ -339,7 +339,6 @@ namespace {
     CounterMovesHistory.clear();
     Gains.clear();
     Countermoves.clear();
-    Followupmoves.clear();
 
     size_t multiPV = Options["MultiPV"];
     Skill skill(Options["Skill Level"]);
@@ -595,7 +594,7 @@ namespace {
     {
         ss->currentMove = ttMove; // Can be MOVE_NONE
 
-        // If ttMove is quiet, update killers, history, counter move and followup move on TT hit
+        // If ttMove is quiet, update killers, history and counter move on TT hit
         if (ttValue >= beta && ttMove && !pos.capture_or_promotion(ttMove) && !inCheck)
             update_stats(pos, ss, ttMove, depth, nullptr, 0);
 
@@ -784,14 +783,12 @@ namespace {
 moves_loop: // When in check and at SpNode search starts from here
 
     Square prevMoveSq = to_sq((ss-1)->currentMove);
-    Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
-                            Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second };
+    Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first.first,
+                            Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first.second,
+                            Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second.first,
+                            Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second.second };
 
-    Square prevOwnMoveSq = to_sq((ss-2)->currentMove);
-    Move followupmoves[] = { Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].first,
-                             Followupmoves[pos.piece_on(prevOwnMoveSq)][prevOwnMoveSq].second };
-
-    MovePicker mp(pos, ttMove, depth, History, CounterMovesHistory, countermoves, followupmoves, ss);
+    MovePicker mp(pos, ttMove, depth, History, CounterMovesHistory, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
@@ -967,7 +964,7 @@ moves_loop: // When in check and at SpNode search starts from here
               ||  History[pos.piece_on(to_sq(move))][to_sq(move)] < VALUE_ZERO)
               ss->reduction += ONE_PLY;
 
-          if (move == countermoves[0] || move == countermoves[1])
+          if (move == countermoves[0] || move == countermoves[1] || move == countermoves[2] || move == countermoves[3])
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
           // Decrease reduction for moves that escape a capture
@@ -1142,7 +1139,7 @@ moves_loop: // When in check and at SpNode search starts from here
         bestValue = excludedMove ? alpha
                    :     inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
 
-    // Quiet best move: update killers, history, countermoves and followupmoves
+    // Quiet best move: update killers, history and countermoves
     else if (bestValue >= beta && !pos.capture_or_promotion(bestMove) && !inCheck)
         update_stats(pos, ss, bestMove, depth, quietsSearched, quietCount - 1);
 
@@ -1402,8 +1399,8 @@ moves_loop: // When in check and at SpNode search starts from here
     *pv = MOVE_NONE;
   }
 
-  // update_stats() updates killers, history, countermoves and followupmoves
-  // stats after a fail-high of a quiet move.
+  // update_stats() updates killers, history and countermoves stats after a fail-high
+  // of a quiet move.
 
   void update_stats(const Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt) {
 
@@ -1433,12 +1430,6 @@ moves_loop: // When in check and at SpNode search starts from here
 
         if (is_ok((ss-1)->currentMove))
             cmh.update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
-    }
-
-    if (is_ok((ss-2)->currentMove) && (ss-1)->currentMove == (ss-1)->ttMove)
-    {
-        Square prevPrevSq = to_sq((ss-2)->currentMove);
-        Followupmoves.update(pos.piece_on(prevPrevSq), prevPrevSq, move);
     }
   }
 

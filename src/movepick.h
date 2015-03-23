@@ -48,11 +48,13 @@ struct Stats {
 
   void update(Piece pc, Square to, Move m) {
 
-    if (m == table[pc][to].first)
+    if (m == table[pc][to].first.first || m == table[pc][to].first.second || m == table[pc][to].second.first)
         return;
 
-    table[pc][to].second = table[pc][to].first;
-    table[pc][to].first = m;
+    table[pc][to].second.second = table[pc][to].second.first;
+    table[pc][to].second.first = table[pc][to].first.second;
+    table[pc][to].first.second = table[pc][to].first.first;
+    table[pc][to].first.first = m;
   }
 
   void update(Piece pc, Square to, Value v) {
@@ -70,7 +72,7 @@ private:
 
 typedef Stats< true, Value> GainsStats;
 typedef Stats<false, Value> HistoryStats;
-typedef Stats<false, std::pair<Move, Move> > MovesStats;
+typedef Stats<false, std::pair<std::pair<Move, Move>, std::pair<Move, Move>> > MovesStats;
 typedef Stats<false, HistoryStats> CounterMovesHistoryStats;
 
 
@@ -88,7 +90,7 @@ public:
 
   MovePicker(const Position&, Move, Depth, const HistoryStats&, const CounterMovesHistoryStats&, Square);
   MovePicker(const Position&, Move, const HistoryStats&, const CounterMovesHistoryStats&, PieceType);
-  MovePicker(const Position&, Move, Depth, const HistoryStats&, const CounterMovesHistoryStats&, Move*, Move*, Search::Stack*);
+  MovePicker(const Position&, Move, Depth, const HistoryStats&, const CounterMovesHistoryStats&, Move*, Search::Stack*);
 
   template<bool SpNode> Move next_move();
 
@@ -103,7 +105,6 @@ private:
   const CounterMovesHistoryStats& counterMovesHistory;
   Search::Stack* ss;
   Move* countermoves;
-  Move* followupmoves;
   Depth depth;
   Move ttMove;
   ExtMove killers[6];
