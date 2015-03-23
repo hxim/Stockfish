@@ -68,12 +68,12 @@ namespace {
 /// ordering is at the current node.
 
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h, const CounterMovesHistoryStats& cmh,
-                       Move* cm, Search::Stack* s) : pos(p), history(h), counterMovesHistory(cmh), depth(d) {
+                       Move cm, Search::Stack* s) : pos(p), history(h), counterMovesHistory(cmh), depth(d) {
 
   assert(d > DEPTH_ZERO);
 
   endBadCaptures = moves + MAX_MOVES - 1;
-  countermoves = cm;
+  countermove = cm;
   ss = s;
 
   if (pos.checkers())
@@ -216,10 +216,9 @@ void MovePicker::generate_next_stage() {
 
       // Be sure countermoves are different from killers
 
-      for (int i = 0; i < 4; ++i)
-          if (   countermoves[i] != killers[0]
-              && countermoves[i] != killers[1])
-              *endMoves++ = countermoves[i];
+      if (   countermove != killers[0]
+          && countermove != killers[1])
+          *endMoves++ = countermove;
       break;
 
   case QUIETS_1_S1:
