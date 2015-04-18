@@ -191,12 +191,6 @@ namespace {
     (FileCBB | FileDBB | FileEBB | FileFBB) & (Rank7BB | Rank6BB | Rank5BB)
   };
 
-  // King danger constants and variables. The king danger scores are looked-up
-  // in KingDanger[]. Various little "meta-bonuses" measuring the strength
-  // of the enemy attack are added up into an integer, which is used as an
-  // index to KingDanger[].
-  Score KingDanger[512];
-
   // KingAttackWeights[PieceType] contains king attack weights by piece type
   const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 7, 5, 4, 1 };
 
@@ -402,8 +396,7 @@ namespace {
                         | ei.attackedBy[Us][BISHOP] | ei.attackedBy[Us][ROOK]
                         | ei.attackedBy[Us][QUEEN]);
 
-        // Initialize the 'attackUnits' variable, which is used later on as an
-        // index into the KingDanger[] array. The initial value is based on the
+        // Initialize the 'attackUnits' variable. The initial value is based on the
         // number and types of the enemy's attacking pieces, the number of
         // attacked and undefended squares around our king and the quality of
         // the pawn shelter (current 'score' value).
@@ -470,9 +463,12 @@ namespace {
         if (b)
             attackUnits += KnightCheck * popcount<Max15>(b);
 
-        // Finally, extract the king danger score from the KingDanger[]
-        // array and subtract the score from evaluation.
-        score -= KingDanger[std::max(std::min(attackUnits, 399), 0)];
+        // Finally, extract the king danger score
+        const int mbonus = attackUnits <= 5   ? 0
+                         : attackUnits <= 161 ? attackUnits * attackUnits * 2 / 59
+                         : attackUnits <= 227 ? 877 + 11 * (attackUnits - 161)
+                                              : 1614;
+        score -= make_score(mbonus, 0);
     }
 
     if (Trace)
@@ -906,22 +902,6 @@ namespace Eval {
   /// debugging.
   std::string trace(const Position& pos) {
     return Tracing::do_trace(pos);
-  }
-
-
-  /// init() computes evaluation weights, usually at startup
-
-  void init() {
-
-    const int MaxSlope = 8700;
-    const int Peak = 1280000;
-    int t = 0;
-
-    for (int i = 0; i < 400; ++i)
-    {
-        t = std::min(Peak, std::min(i * i * 27, t + MaxSlope));
-        KingDanger[i] = make_score(t / 1000, 0) * Weights[KingSafety];
-    }
   }
 
 } // namespace Eval
