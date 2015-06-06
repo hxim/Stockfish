@@ -201,15 +201,11 @@ void MovePicker::generate_next_stage() {
       cur = killers;
       endMoves = cur + 2;
 
-      killers[0] = ss->killers[0];
-      killers[1] = ss->killers[1];
-      killers[2] = ss->killers[2];
-      killers[3].move = MOVE_NONE;
+      killers[0] = ss->killerMove;
+      killers[1].move = MOVE_NONE;
 
       // Be sure countermoves are different from killers
-      if (   countermove != killers[0]
-          && countermove != killers[1]
-          && countermove != killers[2])
+      if (   countermove != killers[0])
           *endMoves++ = countermove;
       break;
 
@@ -304,9 +300,7 @@ Move MovePicker::next_move<false>() {
           move = *cur++;
           if (   move != ttMove
               && move != killers[0]
-              && move != killers[1]
-              && move != killers[2]
-              && move != killers[3])
+              && move != killers[1])
               return move;
           break;
 
