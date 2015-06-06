@@ -583,7 +583,7 @@ namespace {
 
     ss->currentMove = ss->ttMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     (ss+1)->skipEarlyPruning = false; (ss+1)->reduction = DEPTH_ZERO;
-    (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
+    (ss+2)->killers[0] = (ss+2)->killers[1] = (ss+2)->killers[2] = MOVE_NONE;
 
     // Step 4. Transposition table lookup
     // We don't want the score of a partial search to overwrite a previous full search
@@ -949,7 +949,8 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  moveCount > 1
           && !captureOrPromotion
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1])
+          &&  move != ss->killers[1]
+          &&  move != ss->killers[2])
       {
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
@@ -1396,10 +1397,16 @@ moves_loop: // When in check and at SpNode search starts from here
   void update_stats(const Position& pos, Stack* ss, Move move,
                     Depth depth, Move* quiets, int quietsCnt) {
 
-    if (ss->killers[0] != move)
+    if (ss->killers[0] != move && ss->killers[1] != move)
     {
+        ss->killers[2] = ss->killers[1];
         ss->killers[1] = ss->killers[0];
         ss->killers[0] = move;
+    }
+    else if (ss->killers[0] != move)
+    {
+        ss->killers[1] = ss->killers[0];
+        ss->killers[0] = move;    
     }
 
     Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY));
