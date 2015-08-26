@@ -885,8 +885,8 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
-          if (   depth < 16 * ONE_PLY
-              && moveCount >= FutilityMoveCounts[improving][depth])
+          if (   newDepth < 15 * ONE_PLY
+              && moveCount >= FutilityMoveCounts[improving][newDepth + ONE_PLY])
           {
               if (SpNode)
                   splitPoint->spinlock.acquire();
@@ -894,7 +894,7 @@ moves_loop: // When in check and at SpNode search starts from here
               continue;
           }
 
-          predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
+          predictedDepth = newDepth - reduction<PvNode>(improving, newDepth + ONE_PLY, moveCount);
 
           // Futility pruning: parent node
           if (predictedDepth < 7 * ONE_PLY)
@@ -942,13 +942,13 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Step 15. Reduced depth search (LMR). If the move fails high it will be
       // re-searched at full depth.
-      if (    depth >= 3 * ONE_PLY
+      if (    newDepth >= 2 * ONE_PLY
           &&  moveCount > 1
           && !captureOrPromotion
           &&  move != ss->killers[0]
           &&  move != ss->killers[1])
       {
-          ss->reduction = reduction<PvNode>(improving, depth, moveCount);
+          ss->reduction = reduction<PvNode>(improving, newDepth + ONE_PLY, moveCount);
 
           if (   (!PvNode && cutNode)
               || (   History[pos.piece_on(to_sq(move))][to_sq(move)] < VALUE_ZERO
