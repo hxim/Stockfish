@@ -39,7 +39,7 @@
 template<typename T>
 struct Stats {
 
-  static const Value Max = Value(512);
+  static const Value Max = Value(1<<28);
 
   const T* operator[](Piece pc) const { return table[pc]; }
   T* operator[](Piece pc) { return table[pc]; }
@@ -55,8 +55,8 @@ struct Stats {
     int weight = d / ONE_PLY;
     if (weight > 18) weight = std::max(37 - weight, 0);
     Value v = Value(sign * weight * weight);
-    table[pc][to] += v;
-    table[pc][to] -= table[pc][to] * abs(v) / Max;
+    table[pc][to] -= table[pc][to] * abs(v) / 512;
+    table[pc][to] += v * 64;
   }
 
 private:
