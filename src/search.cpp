@@ -1408,7 +1408,9 @@ moves_loop: // When in check search starts from here
 
     if (is_ok((ss-1)->currentMove))
     {
-        thisThread->counterMoves.update(pos.piece_on(prevSq), prevSq, move);
+        if (cmh[pos.moved_piece(move)][to_sq(move)] >= VALUE_ZERO)
+            thisThread->counterMoves.update(pos.piece_on(prevSq), prevSq, move);
+            
         cmh.update(pos.moved_piece(move), to_sq(move), bonus);
     }
 
