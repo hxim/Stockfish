@@ -183,10 +183,7 @@ void Search::clear() {
   CounterMovesHistory.clear();
 
   for (Thread* th : Threads)
-  {
       th->history.clear();
-      th->counterMoves.clear();
-  }
 }
 
 
@@ -621,7 +618,7 @@ namespace {
 
     ss->currentMove = ss->ttMove = (ss+1)->excludedMove = bestMove = MOVE_NONE;
     (ss+1)->skipEarlyPruning = false; (ss+1)->reduction = DEPTH_ZERO;
-    (ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONE;
+    (ss+2)->killers[0] = (ss+2)->killers[1] = (ss+2)->killers[2] = MOVE_NONE;
 
     // Step 4. Transposition table lookup. We don't want the score of a partial
     // search to overwrite a previous full search TT value, so we use a different
@@ -643,7 +640,7 @@ namespace {
     {
         ss->currentMove = ttMove; // Can be MOVE_NONE
 
-        // If ttMove is quiet, update killers, history, counter move on TT hit
+        // If ttMove is quiet, update killers, history, counter move history on TT hit
         if (ttValue >= beta && ttMove && !pos.capture_or_promotion(ttMove))
             update_stats(pos, ss, ttMove, depth, nullptr, 0);
 
@@ -822,10 +819,9 @@ namespace {
 moves_loop: // When in check search starts from here
 
     Square prevSq = to_sq((ss-1)->currentMove);
-    Move cm = thisThread->counterMoves[pos.piece_on(prevSq)][prevSq];
     const CounterMovesStats& cmh = CounterMovesHistory[pos.piece_on(prevSq)][prevSq];
 
-    MovePicker mp(pos, ttMove, depth, thisThread->history, cmh, cm, ss);
+    MovePicker mp(pos, ttMove, depth, thisThread->history, cmh, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
     improving =   ss->staticEval >= (ss-2)->staticEval
@@ -966,7 +962,8 @@ moves_loop: // When in check search starts from here
           &&  moveCount > 1
           && !captureOrPromotion
           &&  move != ss->killers[0]
-          &&  move != ss->killers[1])
+          &&  move != ss->killers[1]
+          &&  move != ss->killers[2])
       {
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
@@ -1390,11 +1387,14 @@ moves_loop: // When in check search starts from here
   void update_stats(const Position& pos, Stack* ss, Move move,
                     Depth depth, Move* quiets, int quietsCnt) {
 
-    if (ss->killers[0] != move)
-    {
-        ss->killers[1] = ss->killers[0];
-        ss->killers[0] = move;
-    }
+     if (ss->killers[0] != move)
+     {
+         if (ss->killers[1] != move)
+             ss->killers[2] = ss->killers[1];
+             
+         ss->killers[1] = ss->killers[0];
+         ss->killers[0] = move;
+     }
 
     Value bonus = Value((depth / ONE_PLY) * (depth / ONE_PLY) + depth / ONE_PLY - 1);
 
@@ -1405,10 +1405,7 @@ moves_loop: // When in check search starts from here
     thisThread->history.update(pos.moved_piece(move), to_sq(move), bonus);
 
     if (is_ok((ss-1)->currentMove))
-    {
-        thisThread->counterMoves.update(pos.piece_on(prevSq), prevSq, move);
         cmh.update(pos.moved_piece(move), to_sq(move), bonus);
-    }
 
     // Decrease all the other played quiet moves
     for (int i = 0; i < quietsCnt; ++i)

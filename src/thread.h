@@ -35,10 +35,9 @@
 #include "thread_win32.h"
 
 
-/// Thread struct keeps together all the thread related stuff. We also use
-/// per-thread pawn and material hash tables so that once we get a pointer to an
-/// entry its life time is unlimited and we don't have to care about someone
-/// changing the entry under our feet.
+/// history table. We also use per-thread pawn and material hash tables so that
+/// once we get a pointer to an entry its life time is unlimited and we don't
+/// have to care about someone changing the entry under our feet.
 
 struct Thread : public std::thread {
 
@@ -64,7 +63,6 @@ struct Thread : public std::thread {
   Search::RootMoveVector rootMoves;
   Depth rootDepth;
   HistoryStats history;
-  MovesStats counterMoves;
   Depth completedDepth;
 };
 

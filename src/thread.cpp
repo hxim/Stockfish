@@ -38,7 +38,6 @@ Thread::Thread() {
   exit = resetCalls = false;
   maxPly = callsCnt = 0;
   history.clear();
-  counterMoves.clear();
   idx = Threads.size(); // Starts from 0
   std::thread::operator=(std::thread(&Thread::idle_loop, this));
 }
