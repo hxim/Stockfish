@@ -275,13 +275,17 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
 template<Color Us>
 Value Entry::shelter_storm_big(const Position& pos, Square ksq) {
+  Value bonus = shelter_storm<Us>(pos, ksq);
   File center = std::max(FILE_B, std::min(FILE_G, file_of(ksq)));
-  Square ksqLeft = make_square(center - File(1), rank_of(ksq));
-  Square ksqRight = make_square(center + File(1), rank_of(ksq));
-  
-  return (  shelter_storm<Us>(pos, ksqLeft)
-          + shelter_storm<Us>(pos, ksqRight)
-          + shelter_storm<Us>(pos, ksq) * 8) / 10;
+
+  if (!(pos.pieces() & make_square(center - File(1), rank_of(ksq))))
+      bonus = std::max(bonus, shelter_storm<Us>(pos, make_square(center - File(1), rank_of(ksq))));
+
+  if (!(pos.pieces() & make_square(center + File(1), rank_of(ksq))))
+      bonus = std::max(bonus, shelter_storm<Us>(pos, make_square(center + File(1), rank_of(ksq))));
+      
+  return bonus;
+
 }
 
 
