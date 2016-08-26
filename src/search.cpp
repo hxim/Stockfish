@@ -169,7 +169,6 @@ namespace {
   Value value_from_tt(Value v, int ply);
   void update_pv(Move* pv, Move move, Move* childPv);
   void update_stats(const Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);  
-  void update_own_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, Value bonus);
   void update_opponent_stats(const Position& pos, Stack* ss, Value bonus);
   void check_time();
 
@@ -1394,7 +1393,50 @@ moves_loop: // When in check search starts from here
     if (!pos.capture_or_promotion(move))
     {
         Value bonus = Value(d * d + 2 * d - 2);
-        update_own_stats(pos, ss, move, quiets, quietsCnt, bonus);
+        
+        if (ss->killers[0] != move)
+        {
+            ss->killers[1] = ss->killers[0];
+            ss->killers[0] = move;
+        }
+    
+        CounterMoveStats* cmh  = (ss-1)->counterMoves;
+        CounterMoveStats* fmh1 = (ss-2)->counterMoves;
+        CounterMoveStats* fmh2 = (ss-4)->counterMoves;
+    
+        Color c = pos.side_to_move();
+        Thread* thisThread = pos.this_thread();
+        thisThread->history.update(pos.moved_piece(move), to_sq(move), bonus);
+        thisThread->fromTo.update(c, move, bonus);
+    
+        if (cmh)
+        {
+            Square prevSq = to_sq((ss-1)->currentMove);
+            thisThread->counterMoves.update(pos.piece_on(prevSq), prevSq, move);
+            cmh->update(pos.moved_piece(move), to_sq(move), bonus);
+        }
+    
+        if (fmh1)
+            fmh1->update(pos.moved_piece(move), to_sq(move), bonus);
+    
+        if (fmh2)
+            fmh2->update(pos.moved_piece(move), to_sq(move), bonus);
+    
+        // Decrease all the other played quiet moves
+        for (int i = 0; i < quietsCnt; ++i)
+        {
+            thisThread->history.update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
+            thisThread->fromTo.update(c, quiets[i], -bonus);
+    
+            if (cmh)
+                cmh->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
+    
+            if (fmh1)
+                fmh1->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
+    
+            if (fmh2)
+                fmh2->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
+        }
     }
 
     // Extra penalty for a quiet TT move in previous ply when it gets refuted
@@ -1425,58 +1467,6 @@ moves_loop: // When in check search starts from here
 
     if (fmh2)
         fmh2->update(pos.piece_on(prevSq), prevSq, bonus);
-  }
-
-
-  // update_own_stats() updates killers, history, countermove and countermove plus
-  // follow-up move history when a new quiet best move is found.
-
-  void update_own_stats(const Position& pos, Stack* ss, Move move,
-                    Move* quiets, int quietsCnt, Value bonus) {
-
-    if (ss->killers[0] != move)
-    {
-        ss->killers[1] = ss->killers[0];
-        ss->killers[0] = move;
-    }
-
-    CounterMoveStats* cmh  = (ss-1)->counterMoves;
-    CounterMoveStats* fmh1 = (ss-2)->counterMoves;
-    CounterMoveStats* fmh2 = (ss-4)->counterMoves;
-
-    Color c = pos.side_to_move();
-    Thread* thisThread = pos.this_thread();
-    thisThread->history.update(pos.moved_piece(move), to_sq(move), bonus);
-    thisThread->fromTo.update(c, move, bonus);
-
-    if (cmh)
-    {
-        Square prevSq = to_sq((ss-1)->currentMove);
-        thisThread->counterMoves.update(pos.piece_on(prevSq), prevSq, move);
-        cmh->update(pos.moved_piece(move), to_sq(move), bonus);
-    }
-
-    if (fmh1)
-        fmh1->update(pos.moved_piece(move), to_sq(move), bonus);
-
-    if (fmh2)
-        fmh2->update(pos.moved_piece(move), to_sq(move), bonus);
-
-    // Decrease all the other played quiet moves
-    for (int i = 0; i < quietsCnt; ++i)
-    {
-        thisThread->history.update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
-        thisThread->fromTo.update(c, quiets[i], -bonus);
-
-        if (cmh)
-            cmh->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
-
-        if (fmh1)
-            fmh1->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
-
-        if (fmh2)
-            fmh2->update(pos.moved_piece(quiets[i]), to_sq(quiets[i]), -bonus);
-    }
   }
 
 
