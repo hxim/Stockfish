@@ -168,8 +168,7 @@ namespace {
   Value value_to_tt(Value v, int ply);
   Value value_from_tt(Value v, int ply);
   void update_pv(Move* pv, Move move, Move* childPv);
-  void update_stats(const Position& pos, Stack* ss, Move move, Depth depth, Move* quiets, int quietsCnt);  
-  void update_own_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, Value bonus);
+  void update_stats(const Position& pos, Stack* ss, Move move, Move* quiets, int quietsCnt, Value bonus);
   void update_opponent_stats(const Position& pos, Stack* ss, Value bonus);
   void check_time();
 
@@ -639,8 +638,22 @@ namespace {
 
         // If ttMove is quiet, update killers, history, counter move on TT hit
         if (ttValue >= beta && ttMove)
-            update_stats(pos, ss, ttMove, depth, nullptr, 0)
+        {
+            int d = depth / ONE_PLY;
 
+            if (!pos.capture_or_promotion(ttMove))
+            {
+                Value bonus = Value(d * d + 2 * d - 2);
+                update_stats(pos, ss, ttMove, nullptr, 0, bonus);
+            }
+
+            // Extra penalty for a quiet TT move in previous ply when it gets refuted
+            if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
+            {
+                Value penalty = Value(d * d + 4 * d + 1);
+                update_opponent_stats(pos, ss, -penalty);
+            }
+        }
         return ttValue;
     }
 
@@ -1114,9 +1127,23 @@ moves_loop: // When in check search starts from here
         bestValue = excludedMove ? alpha
                    :     inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
     else if (bestMove)
-        // Quiet best move: update killers, history and countermoves
-        update_stats(pos, ss, bestMove, depth, quietsSearched, quietCount);
+    {
+        int d = depth / ONE_PLY;
 
+        // Quiet best move: update killers, history and countermoves
+        if (!pos.capture_or_promotion(bestMove))
+        {
+            Value bonus = Value(d * d + 2 * d - 2);
+            update_stats(pos, ss, bestMove, quietsSearched, quietCount, bonus);
+        }
+
+        // Extra penalty for a quiet TT move in previous ply when it gets refuted
+        if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
+        {
+            Value penalty = Value(d * d + 4 * d + 1);
+            update_opponent_stats(pos, ss, -penalty);
+        }
+    }
     // Bonus for prior countermove that caused the fail low
     else if (    depth >= 3 * ONE_PLY
              && !pos.captured_piece_type()
@@ -1384,28 +1411,6 @@ moves_loop: // When in check search starts from here
   }
 
 
-  // update_stats() updates killers, history, counter move
-
-  void update_stats(const Position& pos, Stack* ss, Move move,
-                    Depth d, Move* quiets, int quietsCnt) {
-
-    int d = depth / ONE_PLY;
-
-    if (!pos.capture_or_promotion(move))
-    {
-        Value bonus = Value(d * d + 2 * d - 2);
-        update_own_stats(pos, ss, move, quiets, quietsCnt, bonus);
-    }
-
-    // Extra penalty for a quiet TT move in previous ply when it gets refuted
-    if ((ss-1)->moveCount == 1 && !pos.captured_piece_type())
-    {
-        Value penalty = Value(d * d + 4 * d + 1);
-        update_opponent_stats(pos, ss, -penalty);
-    }
-  }
-
-
   // update_opponent_stats() updates countermoves for prior opponent move, i.e.
   // (ss-1)->currentMove. Called for both capture and non-capture moves.
 
@@ -1428,10 +1433,10 @@ moves_loop: // When in check search starts from here
   }
 
 
-  // update_own_stats() updates killers, history, countermove and countermove plus
+  // update_stats() updates killers, history, countermove and countermove plus
   // follow-up move history when a new quiet best move is found.
 
-  void update_own_stats(const Position& pos, Stack* ss, Move move,
+  void update_stats(const Position& pos, Stack* ss, Move move,
                     Move* quiets, int quietsCnt, Value bonus) {
 
     if (ss->killers[0] != move)
