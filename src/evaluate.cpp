@@ -497,6 +497,10 @@ namespace {
        | (b & ei.attackedBy2[Them] & ~ei.attackedBy[Us][PAWN]);
 
     score -= CloseEnemies * popcount(b);
+    
+    int pawns = pos.count<PAWN>(WHITE) + pos.count<PAWN>(BLACK);
+    if (pawns < 10)
+        score -= make_score(mg_value(PSQT::psq[W_KING][(Us == WHITE ? ksq : ~ksq)]) * (10 - pawns) / 10, 0);
 
     if (DoTrace)
         Trace::add(KING, Us, score);
