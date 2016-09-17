@@ -207,7 +207,7 @@ namespace {
   #undef V
 
   // KingAttackWeights[PieceType] contains king attack weights by piece type
-  const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 0, 78, 56, 45, 11 };
+  const int KingAttackWeights[PIECE_TYPE_NB] = { 0, 20, 78, 56, 45, 11 };
 
   // Penalties for enemy's safe checks
   const int QueenContactCheck = 997;
@@ -238,7 +238,8 @@ namespace {
         ei.kingRing[Them] = b | shift_bb<Down>(b);
         b &= ei.attackedBy[Us][PAWN];
         ei.kingAttackersCount[Us] = popcount(b);
-        ei.kingAdjacentZoneAttacksCount[Us] = ei.kingAttackersWeight[Us] = 0;
+        ei.kingAdjacentZoneAttacksCount[Us] = 0;
+        ei.kingAttackersWeight[Us] = ei.kingAttackersCount[Us] * KingAttackWeights[PAWN];
     }
     else
         ei.kingRing[Them] = ei.kingAttackersCount[Us] = 0;
