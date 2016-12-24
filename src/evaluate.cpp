@@ -270,12 +270,16 @@ namespace {
     while ((s = *pl++) != SQ_NONE)
     {
         // Find attacked squares, including x-ray attacks for bishops and rooks
-        b = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(Us, QUEEN))
-          : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN))
-                         : pos.attacks_from<Pt>(s);
+        b = pos.attacks_from<Pt>(s);
+        bb = Pt == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(Us, QUEEN))
+           : Pt ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN))
+                         : b;
 
         if (ei.pinnedPieces[Us] & s)
+        {
             b &= LineBB[pos.square<KING>(Us)][s];
+            bb &= LineBB[pos.square<KING>(Us)][s];
+        }
 
         ei.attackedBy2[Us] |= ei.attackedBy[Us][ALL_PIECES] & b;
         ei.attackedBy[Us][ALL_PIECES] |= ei.attackedBy[Us][Pt] |= b;
@@ -288,11 +292,11 @@ namespace {
         }
 
         if (Pt == QUEEN)
-            b &= ~(  ei.attackedBy[Them][KNIGHT]
+            bb &= ~( ei.attackedBy[Them][KNIGHT]
                    | ei.attackedBy[Them][BISHOP]
                    | ei.attackedBy[Them][ROOK]);
 
-        int mob = popcount(b & mobilityArea[Us]);
+        int mob = popcount(bb & mobilityArea[Us]);
 
         mobility[Us] += MobilityBonus[Pt][mob];
 
