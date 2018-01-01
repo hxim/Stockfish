@@ -216,7 +216,6 @@ namespace {
   const Score BishopPawns           = S(  8, 12);
   const Score LongRangedBishop      = S( 22,  0);
   const Score RookOnPawn            = S(  8, 24);
-  const Score TrappedRook           = S( 92,  0);
   const Score WeakQueen             = S( 50, 10);
   const Score CloseEnemies          = S(  7,  0);
   const Score PawnlessFlank         = S( 20, 80);
@@ -389,16 +388,6 @@ namespace {
             // Bonus when on an open or semi-open file
             if (pe->semiopen_file(Us, file_of(s)))
                 score += RookOnFile[bool(pe->semiopen_file(Them, file_of(s)))];
-
-            // Penalty when trapped by the king, even more if the king cannot castle
-            else if (mob <= 3)
-            {
-                Square ksq = pos.square<KING>(Us);
-
-                if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
-                    && !pe->semiopen_side(Us, file_of(ksq), file_of(s) < file_of(ksq)))
-                    score -= (TrappedRook - make_score(mob * 22, 0)) * (1 + !pos.can_castle(Us));
-            }
         }
 
         if (Pt == QUEEN)
