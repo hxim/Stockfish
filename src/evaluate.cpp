@@ -199,7 +199,7 @@ namespace {
     Pawns::Entry* pe;
     Bitboard mobilityArea[COLOR_NB];
     Score mobility[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
-    Score piecesScore[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
+    Score pawnsScore[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
 
     // attackedBy[color][piece type] is a bitboard representing all squares
     // attacked by a given color and piece type. Special "piece types" which
@@ -479,7 +479,7 @@ namespace {
                      - 873 * !pos.count<QUEEN>(Them)
                      -   6 * mg_value(score) / 8
                      +       mg_value(mobility[Them] - mobility[Us])
-                     +       mg_value(piecesScore[Them] - piecesScore[Us])
+                     +       mg_value(pawnsScore[Them] - pawnsScore[Us])
                      -   30;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
@@ -813,7 +813,9 @@ namespace {
 
     // Probe the pawn hash table
     pe = Pawns::probe(pos);
-    score += pe->pawn_score(WHITE) - pe->pawn_score(BLACK);
+    pawnsScore[WHITE] = pe->pawn_score(WHITE);
+    pawnsScore[BLACK] = pe->pawn_score(BLACK);
+    score += pawnsScore[WHITE] - pawnsScore[BLACK];
 
     // Early exit if score is high
     Value v = (mg_value(score) + eg_value(score)) / 2;
@@ -826,22 +828,20 @@ namespace {
     initialize<BLACK>();
 
     // Pieces should be evaluated first (populate attack tables)
-    piecesScore[WHITE] = pieces<WHITE, KNIGHT>() + pieces<WHITE, BISHOP>()
-                       + pieces<WHITE, ROOK  >() + pieces<WHITE, QUEEN >();
-    piecesScore[BLACK] = pieces<BLACK, KNIGHT>() + pieces<BLACK, BISHOP>()
-                       + pieces<BLACK, ROOK  >() + pieces<BLACK, QUEEN >();
+    score +=  pieces<WHITE, KNIGHT>() - pieces<BLACK, KNIGHT>()
+            + pieces<WHITE, BISHOP>() - pieces<BLACK, BISHOP>()
+            + pieces<WHITE, ROOK  >() - pieces<BLACK, ROOK  >()
+            + pieces<WHITE, QUEEN >() - pieces<BLACK, QUEEN >();
 
-    score += piecesScore[WHITE] - piecesScore[BLACK];
     score += mobility[WHITE] - mobility[BLACK];
 
-    score +=  space<   WHITE>() - space<   BLACK>()
-            + passed<  WHITE>() - passed<  BLACK>()
-            + threats< WHITE>() - threats< BLACK>();
-
-    score +=  king<   WHITE>() - king<   BLACK>();
+    score +=  king<   WHITE>() - king<   BLACK>()
+            + threats<WHITE>() - threats<BLACK>()
+            + passed< WHITE>() - passed< BLACK>()
+            + space<  WHITE>() - space<  BLACK>();
 
     score += initiative(eg_value(score));
-
+  
     // Interpolate between a middlegame and a (scaled by 'sf') endgame score
     ScaleFactor sf = scale_factor(eg_value(score));
     v =  mg_value(score) * int(me->game_phase())
