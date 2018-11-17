@@ -199,7 +199,7 @@ namespace {
     Pawns::Entry* pe;
     Bitboard mobilityArea[COLOR_NB];
     Score mobility[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
-    Score spaceScore[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
+    Score piecesScore[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
 
     // attackedBy[color][piece type] is a bitboard representing all squares
     // attacked by a given color and piece type. Special "piece types" which
@@ -479,7 +479,7 @@ namespace {
                      - 873 * !pos.count<QUEEN>(Them)
                      -   6 * mg_value(score) / 8
                      +       mg_value(mobility[Them] - mobility[Us])
-                     +       mg_value(spaceScore[Them] - spaceScore[Us])
+                     +       mg_value(piecesScore[Them] - piecesScore[Us])
                      -   30;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
@@ -826,17 +826,15 @@ namespace {
     initialize<BLACK>();
 
     // Pieces should be evaluated first (populate attack tables)
-    score +=  pieces<WHITE, KNIGHT>() - pieces<BLACK, KNIGHT>()
-            + pieces<WHITE, BISHOP>() - pieces<BLACK, BISHOP>()
-            + pieces<WHITE, ROOK  >() - pieces<BLACK, ROOK  >()
-            + pieces<WHITE, QUEEN >() - pieces<BLACK, QUEEN >();
+    piecesScore[WHITE] = pieces<WHITE, KNIGHT>() + pieces<WHITE, BISHOP>()
+                       + pieces<WHITE, ROOK  >() + pieces<WHITE, QUEEN >();
+    piecesScore[BLACK] = pieces<BLACK, KNIGHT>() + pieces<BLACK, BISHOP>()
+                       + pieces<BLACK, ROOK  >() + pieces<BLACK, QUEEN >();
 
+    score += piecesScore[WHITE] - piecesScore[BLACK];
     score += mobility[WHITE] - mobility[BLACK];
-    
-    spaceScore[WHITE] = space<WHITE>();
-    spaceScore[BLACK] = space<BLACK>();
 
-    score +=  spaceScore[WHITE] - spaceScore[BLACK]
+    score +=  space<   WHITE>() - space<   BLACK>()
             + passed<  WHITE>() - passed<  BLACK>()
             + threats< WHITE>() - threats< BLACK>();
 
