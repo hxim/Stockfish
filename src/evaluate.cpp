@@ -199,6 +199,7 @@ namespace {
     Pawns::Entry* pe;
     Bitboard mobilityArea[COLOR_NB];
     Score mobility[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
+    Score threatsScore[COLOR_NB] = { SCORE_ZERO, SCORE_ZERO };
 
     // attackedBy[color][piece type] is a bitboard representing all squares
     // attacked by a given color and piece type. Special "piece types" which
@@ -478,6 +479,7 @@ namespace {
                      - 873 * !pos.count<QUEEN>(Them)
                      -   6 * mg_value(score) / 8
                      +       mg_value(mobility[Them] - mobility[Us])
+                     +       mg_value(threatsScore[Them] - threatsScore[Us])
                      -   30;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
@@ -830,11 +832,15 @@ namespace {
             + pieces<WHITE, QUEEN >() - pieces<BLACK, QUEEN >();
 
     score += mobility[WHITE] - mobility[BLACK];
+    
+    threatsScore[WHITE] = threats<WHITE>();
+    threatsScore[BLACK] = threats<BLACK>();
 
-    score +=  king<   WHITE>() - king<   BLACK>()
-            + threats<WHITE>() - threats<BLACK>()
+    score +=  threatsScore[WHITE] - threatsScore[BLACK]
             + passed< WHITE>() - passed< BLACK>()
             + space<  WHITE>() - space<  BLACK>();
+
+    score +=  king<   WHITE>() - king<   BLACK>();
 
     score += initiative(eg_value(score));
 
